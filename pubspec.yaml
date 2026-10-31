@@ -30,7 +30,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-    # Firebase Packages
+  flutter_localizations:
+    sdk: flutter
+  # Firebase Packages
   firebase_core: ^3.15.2
   cloud_firestore: ^5.6.0
   firebase_auth: ^5.4.0
