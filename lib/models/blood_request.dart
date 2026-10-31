@@ -12,9 +12,9 @@ class BloodRequest {
   final String requiredDateTime;
   final String requestType; // 'Normal' or 'Emergency'
   final String notes;
-  final String status; // 'open', 'accepted', 'fulfilled', 'cancelled'
+  final String status; // 'open', 'accepted', 'donation_completed', 'fulfilled', 'cancelled'
   final String? assignedDonorId;
-  final DateTime? acceptedAt
+  final DateTime? acceptedAt;
   final double? latitude;
   final double? longitude;
   final DateTime? createdAt;
