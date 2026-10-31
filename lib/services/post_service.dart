@@ -22,6 +22,19 @@ class PostService {
     });
   }
 
+  // Stream posts created by the signed-in user for the Activity tab.
+  Stream<List<Post>> getUserPosts(String userId, {int limit = 50}) {
+    return _firestore
+        .collection('posts')
+        .where('authorUid', isEqualTo: userId)
+        .orderBy('createdAt', descending: true)
+        .limit(limit)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => Post.fromMap(doc.data(), doc.id))
+            .toList());
+  }
+
   // Temporary debug helper to safely inspect decoded JWT claims from Firebase ID token
   void _debugFirebaseIdTokenClaims(String? idToken) {
     if (idToken == null) {
