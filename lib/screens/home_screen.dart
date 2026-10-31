@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
 import '../services/auth_service.dart';
 import '../services/notification_service.dart';
@@ -548,6 +547,14 @@ class _HomeScreenState extends State<HomeScreen> {
                               ],
                             ),
                             const SizedBox(height: 12),
+                            if (post.donationRecordId != null) ...[
+                              const Chip(
+                                avatar: Icon(Icons.verified, color: Colors.green, size: 18),
+                                label: Text('Recipient-confirmed blood donation'),
+                                visualDensity: VisualDensity.compact,
+                              ),
+                              const SizedBox(height: 6),
+                            ],
                             // Post Text
                             Text(
                               post.text,
