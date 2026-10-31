@@ -14,10 +14,7 @@ import '../models/user_profile.dart';
 import '../models/donation_record.dart';
 import 'login_screen.dart';
 import 'profile_screen.dart';
-import 'create_blood_request_screen.dart';
-import 'my_blood_requests_screen.dart';
 import 'my_accepted_requests_screen.dart';
-import 'nearby_blood_requests_screen.dart';
 import 'notifications_screen.dart';
 import 'create_post_screen.dart';
 import 'activity_screen.dart';
@@ -199,27 +196,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildActionButton(BuildContext context, IconData icon, String label, Color color, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 4.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircleAvatar(
-              backgroundColor: color.withValues(alpha: 0.15),
-              child: Icon(icon, color: color, size: 22),
-            ),
-            const SizedBox(height: 4),
-            Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black87)),
-          ],
-        ),
-      ),
-    );
-  }
-
   void _showInfoDialog(String title, String message) {
     showDialog<void>(
       context: context,
@@ -360,7 +336,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   break;
                 case 'logout':
                   await _authService.signOut();
-                  if (!mounted) return;
+                  if (!context.mounted) return;
                   Navigator.pushReplacement(
                     context,
                     MaterialPageRoute(builder: (context) => const LoginScreen()),
