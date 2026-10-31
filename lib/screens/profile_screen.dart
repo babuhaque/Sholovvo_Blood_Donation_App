@@ -663,6 +663,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
 
                     TextFormField(
+                      initialValue: _currentUser?.email ?? '',
+                      readOnly: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Email Address',
+                        prefixIcon: Icon(Icons.email_outlined, color: Colors.redAccent),
+                        helperText: 'Email is managed by your sign-in account.',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
                       controller: _fullNameController,
                       decoration: const InputDecoration(
                         labelText: 'Full Name',
