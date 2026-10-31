@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../locale_controller.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/app_notification.dart';
@@ -57,8 +58,8 @@ class NotificationsScreen extends StatelessWidget {
 
     if (currentUser == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Notifications'), backgroundColor: Colors.redAccent),
-        body: const Center(child: Text('Please log in to view notifications.')),
+        appBar: AppBar(title: Text(appText(context, 'Notifications', 'নোটিফিকেশন')), backgroundColor: Colors.redAccent),
+        body: Center(child: Text(appText(context, 'Please log in to view notifications.', 'নোটিফিকেশন দেখতে লগইন করুন।'))),
       );
     }
 
@@ -88,7 +89,7 @@ class NotificationsScreen extends StatelessWidget {
                   Icon(Icons.notifications_off_outlined, size: 64, color: Colors.grey),
                   SizedBox(height: 16),
                   Text(
-                    'No notifications yet.',
+                    appText(context, 'No notifications yet.', 'এখনো কোনো নোটিফিকেশন নেই।'),
                     style: TextStyle(fontSize: 16, color: Colors.grey),
                   ),
                 ],
