@@ -12,7 +12,9 @@ class BloodRequest {
   final String requiredDateTime;
   final String requestType; // 'Normal' or 'Emergency'
   final String notes;
-  final String status; // 'open', 'fulfilled', 'cancelled'
+  final String status; // 'open', 'accepted', 'fulfilled', 'cancelled'
+  final String? assignedDonorId;
+  final DateTime? acceptedAt
   final double? latitude;
   final double? longitude;
   final DateTime? createdAt;
@@ -30,6 +32,8 @@ class BloodRequest {
     required this.requestType,
     required this.notes,
     required this.status,
+    this.assignedDonorId,
+    this.acceptedAt,
     this.latitude,
     this.longitude,
     this.createdAt,
@@ -68,6 +72,8 @@ class BloodRequest {
       requestType: map['requestType'] ?? 'Normal',
       notes: map['notes'] ?? '',
       status: map['status'] ?? 'open',
+      assignedDonorId: map['assignedDonorId'] as String?,
+      acceptedAt: map['acceptedAt'] != null ? (map['acceptedAt'] as Timestamp).toDate() : null,
       latitude: map['latitude'] != null ? (map['latitude'] as num).toDouble() : null,
       longitude: map['longitude'] != null ? (map['longitude'] as num).toDouble() : null,
       createdAt: map['createdAt'] != null ? (map['createdAt'] as Timestamp).toDate() : null,
