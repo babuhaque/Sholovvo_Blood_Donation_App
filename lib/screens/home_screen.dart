@@ -19,6 +19,7 @@ import 'notifications_screen.dart';
 import 'create_post_screen.dart';
 import 'activity_screen.dart';
 import '../theme_controller.dart';
+import '../locale_controller.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -187,10 +188,10 @@ class _HomeScreenState extends State<HomeScreen> {
       unselectedItemColor: Colors.grey,
       onTap: (index) => setState(() => _selectedIndex = index),
       items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Home'),
-        BottomNavigationBarItem(icon: Icon(Icons.notifications_none), activeIcon: Icon(Icons.notifications), label: 'Notification'),
-        BottomNavigationBarItem(icon: Icon(Icons.local_activity_outlined), activeIcon: Icon(Icons.local_activity), label: 'Activity'),
-        BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'My Account'),
+        BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: appText(context, 'Home', 'হোম')),
+        BottomNavigationBarItem(icon: Icon(Icons.notifications_none), activeIcon: Icon(Icons.notifications), label: appText(context, 'Notification', 'নোটিফিকেশন')),
+        BottomNavigationBarItem(icon: Icon(Icons.local_activity_outlined), activeIcon: Icon(Icons.local_activity), label: appText(context, 'Activity', 'কার্যক্রম')),
+        BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: appText(context, 'My Account', 'আমার অ্যাকাউন্ট')),
       ],
     );
   }
@@ -287,6 +288,30 @@ class _HomeScreenState extends State<HomeScreen> {
                 case 'profile':
                   setState(() => _selectedIndex = 3);
                   break;
+                case 'language':
+                  showDialog<void>(
+                    context: context,
+                    builder: (dialogContext) => AlertDialog(
+                      title: Text(appText(context, 'Choose language', 'ভাষা নির্বাচন করুন')),
+                      content: RadioGroup<String>(
+                        groupValue: appLocale.value.languageCode,
+                        onChanged: (value) {
+                          if (value != null) {
+                            setAppLocale(value);
+                            Navigator.pop(dialogContext);
+                          }
+                        },
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            RadioListTile<String>(value: 'en', title: Text('English')),
+                            RadioListTile<String>(value: 'bn', title: Text('বাংলা')),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                  break;
                 case 'settings':
                   _showInfoDialog(
                     'Settings',
@@ -334,10 +359,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   break;
               }
             },
-            itemBuilder: (context) => const [
+            itemBuilder: (context) => [
               PopupMenuItem(value: 'profile', child: ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: Icon(Icons.person_outline), title: Text('My Profile'),
+              )),
+              PopupMenuItem(value: 'language', child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.language), title: Text(appText(context, 'Language', 'ভাষা')),
               )),
               PopupMenuItem(value: 'settings', child: ListTile(
                 contentPadding: EdgeInsets.zero,
