@@ -177,36 +177,41 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildBottomActionBar(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.2),
-            spreadRadius: 1,
-            blurRadius: 5,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildActionButton(context, Icons.radar, 'Nearby', Colors.red, () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => const NearbyBloodRequestsScreen()));
-          }),
-          _buildActionButton(context, Icons.add_circle, 'Blood Request', Colors.redAccent, () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => const CreateBloodRequestScreen()));
-          }),
-          _buildActionButton(context, Icons.list_alt, 'My Requests', Colors.orange, () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => const MyBloodRequestsScreen()));
-          }),
-          _buildActionButton(context, Icons.person, 'Profile', Colors.blue, () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreen()));
-          }),
-        ],
-      ),
+    return BottomNavigationBar(
+      type: BottomNavigationBarType.fixed,
+      currentIndex: 0,
+      selectedItemColor: Colors.redAccent,
+      unselectedItemColor: Colors.grey,
+      onTap: (index) {
+        switch (index) {
+          case 0:
+            break;
+          case 1:
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+            );
+            break;
+          case 2:
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const MyBloodRequestsScreen()),
+            );
+            break;
+          case 3:
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ProfileScreen()),
+            );
+            break;
+        }
+      },
+      items: const [
+        BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Home'),
+        BottomNavigationBarItem(icon: Icon(Icons.notifications_none), activeIcon: Icon(Icons.notifications), label: 'Notification'),
+        BottomNavigationBarItem(icon: Icon(Icons.local_activity_outlined), activeIcon: Icon(Icons.local_activity), label: 'Activity'),
+        BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'My Account'),
+      ],
     );
   }
 
