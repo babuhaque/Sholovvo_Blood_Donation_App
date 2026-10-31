@@ -479,6 +479,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                     
+                    if (_currentUser != null && _selectedRole == 'donor') ...[
+                      _DonorRatingsSection(donorUid: _currentUser.uid),
+                      const SizedBox(height: 16),
+                    ],
                     // Location Status Card
                     Card(
                       elevation: 1,
@@ -861,5 +865,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
     );
+  }
+}
+
+
+class _DonorRatingsSection extends StatelessWidget {
+  final String donorUid;
+  const _DonorRatingsSection({required this.donorUid});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(elevation: 2, child: Padding(padding: const EdgeInsets.all(16), child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance.collection('donation_ratings').where('donorUid', isEqualTo: donorUid).snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) return Text('Could not load ratings: ${snapshot.error}');
+        if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+        final docs = snapshot.data?.docs ?? [];
+        final scores = docs.map((d) => (d.data()['stars'] as num?)?.toDouble() ?? 0).where((v) => v >= 1 && v <= 5).toList();
+        final average = scores.isEmpty ? 0.0 : scores.reduce((a, b) => a + b) / scores.length;
+        return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Donor Rating & Reviews', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.redAccent)),
+          const SizedBox(height: 12),
+          Row(children: [
+            const Icon(Icons.star, color: Colors.amber, size: 30),
+            const SizedBox(width: 6),
+            Text(scores.isEmpty ? 'No ratings yet' : average.toStringAsFixed(1), style: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold)),
+            const SizedBox(width: 8),
+            Text('(${scores.length} ${scores.length == 1 ? 'review' : 'reviews'})', style: const TextStyle(color: Colors.grey)),
+          ]),
+          if (docs.isEmpty) const Padding(padding: EdgeInsets.only(top: 8), child: Text('Your confirmed donation reviews will appear here.', style: TextStyle(color: Colors.grey))),
+          ...docs.map((doc) {
+            final data = doc.data();
+            final stars = (data['stars'] as num?)?.toInt() ?? 0;
+            final review = (data['review'] as String?)?.trim() ?? '';
+            return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Divider(height: 20),
+              Row(children: [
+                ...List.generate(5, (i) => Icon(i < stars ? Icons.star : Icons.star_border, size: 18, color: Colors.amber)),
+                const Spacer(),
+                const Text('Verified donation', style: TextStyle(fontSize: 11, color: Colors.green)),
+              ]),
+              if (review.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 6), child: Text(review)),
+            ]);
+          }),
+        ]);
+      },
+    )));
   }
 }
