@@ -17,6 +17,9 @@ import 'profile_screen.dart';
 import 'my_accepted_requests_screen.dart';
 import 'notifications_screen.dart';
 import 'create_post_screen.dart';
+import 'create_blood_request_screen.dart';
+import 'my_blood_requests_screen.dart';
+import 'nearby_blood_requests_screen.dart';
 import 'activity_screen.dart';
 import '../theme_controller.dart';
 import '../locale_controller.dart';
@@ -424,6 +427,50 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const Divider(height: 1),
 
+          // Quick access to blood request screens.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _BloodRequestShortcut(
+                    icon: Icons.add_circle_outline,
+                    label: 'Create Request',
+                    color: Colors.redAccent,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const CreateBloodRequestScreen()),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _BloodRequestShortcut(
+                    icon: Icons.near_me_outlined,
+                    label: 'Nearby Requests',
+                    color: Colors.deepOrange,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const NearbyBloodRequestsScreen()),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _BloodRequestShortcut(
+                    icon: Icons.assignment_outlined,
+                    label: 'My Requests',
+                    color: Colors.teal,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const MyBloodRequestsScreen()),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
           // Share a donation only after the recipient has confirmed it.
           if (user != null)
             StreamBuilder<List<DonationRecord>>(
@@ -661,6 +708,51 @@ class _HomeScreenState extends State<HomeScreen> {
             MaterialPageRoute(builder: (context) => const CreatePostScreen()),
           );
         },
+      ),
+    );
+  }
+}
+
+
+class _BloodRequestShortcut extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _BloodRequestShortcut({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: color.withValues(alpha: 0.08),
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+          child: Column(
+            children: [
+              Icon(icon, color: color, size: 25),
+              const SizedBox(height: 6),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
