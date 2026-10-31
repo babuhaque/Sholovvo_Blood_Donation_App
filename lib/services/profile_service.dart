@@ -8,8 +8,20 @@ class ProfileService {
   Future<void> saveProfile(UserProfile profile) async {
     try {
       // 1. Save public discovery profile at /users/{uid}
+      final publicData = profile.toPublicMap();
+      if (profile.role != 'donor') {
+        publicData['isAvailable'] = false;
+      } else if (profile.lastDonationDate.trim().isNotEmpty) {
+        final lastDonation = DateTime.tryParse(profile.lastDonationDate.trim());
+        if (lastDonation != null &&
+            (lastDonation.isAfter(DateTime.now()) ||
+                DateTime.now().difference(lastDonation).inDays < 90)) {
+          publicData['isAvailable'] = false;
+        }
+      }
+
       await _firestore.collection('users').doc(profile.uid).set(
-            profile.toPublicMap(),
+            publicData,
             SetOptions(merge: true),
           );
 
