@@ -396,8 +396,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 !parsedDonationDate.isAfter(DateTime.now()) &&
                 DateTime.now().difference(parsedDonationDate).inDays >= 90);
         final bool availableStatus = _selectedRole == 'donor' &&
-            donationIntervalPassed &&
-            _isAvailable;
+            (rawDonationDate.isNotEmpty
+                ? donationIntervalPassed
+                : _isAvailable);
 
         UserProfile profile = UserProfile(
           uid: _currentUser.uid,
