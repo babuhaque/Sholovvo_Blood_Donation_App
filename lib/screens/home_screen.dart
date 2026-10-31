@@ -17,6 +17,7 @@ import 'my_blood_requests_screen.dart';
 import 'nearby_blood_requests_screen.dart';
 import 'notifications_screen.dart';
 import 'create_post_screen.dart';
+import 'activity_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -32,6 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
   
   String _displayName = 'User';
   bool _isLoadingProfile = true;
+  int _selectedIndex = 0;
 
   @override
   void initState() {
@@ -179,33 +181,10 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildBottomActionBar(BuildContext context) {
     return BottomNavigationBar(
       type: BottomNavigationBarType.fixed,
-      currentIndex: 0,
+      currentIndex: _selectedIndex,
       selectedItemColor: Colors.redAccent,
       unselectedItemColor: Colors.grey,
-      onTap: (index) {
-        switch (index) {
-          case 0:
-            break;
-          case 1:
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const NotificationsScreen()),
-            );
-            break;
-          case 2:
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const MyBloodRequestsScreen()),
-            );
-            break;
-          case 3:
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const ProfileScreen()),
-            );
-            break;
-        }
-      },
+      onTap: (index) => setState(() => _selectedIndex = index),
       items: const [
         BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Home'),
         BottomNavigationBarItem(icon: Icon(Icons.notifications_none), activeIcon: Icon(Icons.notifications), label: 'Notification'),
@@ -307,8 +286,11 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: Column(
+      body: IndexedStack(
+        index: _selectedIndex,
         children: [
+          Column(
+            children: [
           // Facebook-style Top-Left Corner Brand Header with logo.jpeg
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -507,6 +489,11 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
           ),
+            ],
+          ),
+          const NotificationsScreen(),
+          const ActivityScreen(),
+          const ProfileScreen(),
         ],
       ),
       bottomNavigationBar: _buildBottomActionBar(context),
