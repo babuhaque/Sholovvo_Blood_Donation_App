@@ -194,6 +194,10 @@ class MyBloodRequestsScreen extends StatelessWidget {
                           ),
                         ),
                       ],
+                      if (request.status == 'fulfilled') ...[
+                        const SizedBox(height: 10),
+                        _DonationRatingButton(request: request, recipientUid: currentUser.uid),
+                      ],
                       if (request.status == 'donation_completed') ...[
                         const SizedBox(height: 10),
                         SizedBox(
@@ -341,5 +345,58 @@ class MyBloodRequestsScreen extends StatelessWidget {
         },
       ),
     );
+  }
+}
+
+class _DonationRatingButton extends StatefulWidget {
+  final BloodRequest request; final String recipientUid;
+  const _DonationRatingButton({required this.request, required this.recipientUid});
+  @override State<_DonationRatingButton> createState() => _DonationRatingButtonState();
+}
+class _DonationRatingButtonState extends State<_DonationRatingButton> {
+  bool _loading = false;
+  Future<void> _rateDonation() async {
+    int stars = 5; final controller = TextEditingController();
+    final rating = await showDialog<int>(context: context, builder: (dialogContext) => StatefulBuilder(
+      builder: (context, setDialogState) => AlertDialog(
+        title: const Text('Rate Blood Donor'),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Text('How was your donation experience?'),
+          DropdownButtonFormField<int>(value: stars, decoration: const InputDecoration(labelText: 'Star rating'),
+            items: List.generate(5, (i) => i + 1).map((v) => DropdownMenuItem(value: v, child: Text('$v Stars'))).toList(),
+            onChanged: (v) => setDialogState(() => stars = v ?? 5)),
+          const SizedBox(height: 12),
+          TextField(controller: controller, maxLength: 300, maxLines: 3, decoration: const InputDecoration(labelText: 'Review (optional)', border: OutlineInputBorder())),
+        ]),
+        actions: [TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
+          ElevatedButton(onPressed: () => Navigator.pop(dialogContext, stars), child: const Text('Submit'))],
+      )));
+    if (rating == null) { controller.dispose(); return; }
+    setState(() => _loading = true);
+    try {
+      await FirebaseFirestore.instance.collection('donation_ratings').doc(widget.request.id).set({
+        'requestId': widget.request.id, 'donorUid': widget.request.assignedDonorId,
+        'recipientUid': widget.recipientUid, 'stars': rating, 'review': controller.text.trim(),
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Thank you! Your rating has been submitted.')));
+    } catch (e) { if (!mounted) return; ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not submit rating: $e'))); }
+    finally { controller.dispose(); if (mounted) setState(() => _loading = false); }
+  }
+  @override Widget build(BuildContext context) {
+    if (widget.request.assignedDonorId == null) return const SizedBox.shrink();
+    return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance.collection('donation_ratings').doc(widget.request.id).snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.data?.exists ?? false) {
+          final stars = snapshot.data?.data()?['stars'];
+          return ListTile(contentPadding: EdgeInsets.zero, leading: const Icon(Icons.star, color: Colors.amber),
+            title: Text(stars is int ? 'You rated this donor: $stars/5' : 'You rated this donor'));
+        }
+        return SizedBox(width: double.infinity, child: OutlinedButton.icon(onPressed: _loading ? null : _rateDonation,
+          icon: _loading ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.star_outline),
+          label: const Text('Rate Donor')));
+      });
   }
 }
