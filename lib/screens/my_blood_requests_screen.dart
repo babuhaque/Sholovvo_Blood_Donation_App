@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/blood_request.dart';
 import '../services/blood_request_service.dart';
 import 'create_blood_request_screen.dart';
@@ -91,6 +92,7 @@ class MyBloodRequestsScreen extends StatelessWidget {
               if (request.status == 'cancelled') statusColor = Colors.grey;
               if (request.status == 'fulfilled') statusColor = Colors.blue;
               if (request.status == 'accepted') statusColor = Colors.orange;
+              if (request.status == 'donation_completed') statusColor = Colors.deepOrange;
 
               return Card(
                 elevation: 3,
@@ -162,7 +164,7 @@ class MyBloodRequestsScreen extends StatelessWidget {
                           ),
                         ],
                       ),
-                      if (request.status == 'accepted') ...[
+                      if (['accepted', 'donation_completed', 'fulfilled'].contains(request.status)) ...[
                         const SizedBox(height: 10),
                         Container(
                           width: double.infinity,
@@ -178,13 +180,64 @@ class MyBloodRequestsScreen extends StatelessWidget {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  request.assignedDonorId == null
-                                      ? 'A donor has accepted this request.'
-                                      : 'A donor has accepted this request. Donor ID: ${request.assignedDonorId}',
+                                  request.status == 'fulfilled'
+                                      ? 'Donation confirmed. Thank you for helping!'
+                                      : request.status == 'donation_completed'
+                                          ? 'The donor marked this donation completed. Please confirm if the blood was received.'
+                                          : request.assignedDonorId == null
+                                              ? 'A donor has accepted this request.'
+                                              : 'A donor has accepted this request. Donor ID: ${request.assignedDonorId}',
                                   style: const TextStyle(fontWeight: FontWeight.w600),
                                 ),
                               ),
                             ],
+                          ),
+                        ),
+                      ],
+                      if (request.status == 'donation_completed') ...[
+                        const SizedBox(height: 10),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            icon: const Icon(Icons.verified),
+                            label: const Text('Confirm Donation Received'),
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+                            onPressed: () async {
+                              final confirmed = await showDialog<bool>(
+                                context: context,
+                                builder: (dialogContext) => AlertDialog(
+                                  title: const Text('Confirm Blood Donation'),
+                                  content: const Text('Did you receive the blood donation from the assigned donor? Only confirm if the donation actually happened.'),
+                                  actions: [
+                                    TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Not yet')),
+                                    ElevatedButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Yes, confirm')),
+                                  ],
+                                ),
+                              );
+                              if (confirmed != true) return;
+                              try {
+                                final batch = FirebaseFirestore.instance.batch();
+                                final requestRef = FirebaseFirestore.instance.collection('blood_requests').doc(request.id);
+                                final donationRef = FirebaseFirestore.instance.collection('donation_history').doc(request.id);
+                                batch.set(donationRef, {
+                                  'donorUid': request.assignedDonorId,
+                                  'bloodGroup': request.bloodGroup,
+                                  'requestId': request.id,
+                                  'hospitalName': request.hospitalName,
+                                  'status': 'confirmed',
+                                  'donationDate': FieldValue.serverTimestamp(),
+                                  'createdAt': FieldValue.serverTimestamp(),
+                                  'confirmedBy': currentUser.uid,
+                                });
+                                batch.update(requestRef, {'status': 'fulfilled', 'fulfilledAt': FieldValue.serverTimestamp()});
+                                await batch.commit();
+                                if (!context.mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Donation confirmed successfully.')));
+                              } catch (e) {
+                                if (!context.mounted) return;
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not confirm donation: $e')));
+                              }
+                            },
                           ),
                         ),
                       ],
