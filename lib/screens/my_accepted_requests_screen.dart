@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../services/notification_service.dart';
 
 class MyAcceptedRequestsScreen extends StatelessWidget {
   const MyAcceptedRequestsScreen({super.key});
@@ -135,6 +136,14 @@ class MyAcceptedRequestsScreen extends StatelessWidget {
                                         'status': 'donation_completed',
                                         'completedAt': FieldValue.serverTimestamp(),
                                       });
+                                      // Notify the recipient after the request status is committed.
+                                      await NotificationService().createNotification(
+                                        recipientUid: (data['userId'] ?? '').toString(),
+                                        requestId: doc.id,
+                                        type: 'donation_completed',
+                                        title: 'Donor marked donation completed',
+                                        body: 'The donor has marked the ${bloodGroup} donation for $patientName as completed. Please confirm receipt.',
+                                      );
                                       if (!context.mounted) return;
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         const SnackBar(content: Text('Marked completed. Waiting for recipient confirmation.')),
