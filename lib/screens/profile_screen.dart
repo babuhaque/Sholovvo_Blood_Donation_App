@@ -78,6 +78,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       UserProfile? profile = await _profileService.getProfile(_currentUser.uid);
       if (profile != null) {
+        final refreshedAvailability =
+            await _profileService.refreshDonationAvailability(_currentUser.uid);
         setState(() {
           _fullNameController.text = profile.fullName;
           _phoneNumberController.text = profile.phoneNumber;
@@ -86,7 +88,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           _selectedGender = profile.gender;
           _lastDonationController.text = _safeFormatDate(profile.lastDonationDate);
           _selectedRole = profile.role;
-          _isAvailable = profile.isAvailable;
+          _isAvailable = refreshedAvailability ?? profile.isAvailable;
           _cachedLatitude = profile.latitude;
           _cachedLongitude = profile.longitude;
           _locationUpdatedAt = profile.locationUpdatedAt;
