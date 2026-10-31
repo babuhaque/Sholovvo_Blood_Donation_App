@@ -90,6 +90,7 @@ class MyBloodRequestsScreen extends StatelessWidget {
               Color statusColor = Colors.green;
               if (request.status == 'cancelled') statusColor = Colors.grey;
               if (request.status == 'fulfilled') statusColor = Colors.blue;
+              if (request.status == 'accepted') statusColor = Colors.orange;
 
               return Card(
                 elevation: 3,
@@ -161,6 +162,32 @@ class MyBloodRequestsScreen extends StatelessWidget {
                           ),
                         ],
                       ),
+                      if (request.status == 'accepted') ...[
+                        const SizedBox(height: 10),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withValues(alpha: 0.10),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.orange.withValues(alpha: 0.35)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.volunteer_activism, color: Colors.orange),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  request.assignedDonorId == null
+                                      ? 'A donor has accepted this request.'
+                                      : 'A donor has accepted this request. Donor ID: ${request.assignedDonorId}',
+                                  style: const TextStyle(fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 12),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
