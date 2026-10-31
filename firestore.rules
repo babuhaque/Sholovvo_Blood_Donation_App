@@ -58,7 +58,15 @@ service cloud.firestore {
     // Posts and comments collection (Author can update text/imageUrl; likeCount restricted to exact +1 or -1 change)
     match /posts/{postId} {
       allow read: if request.auth != null;
-      allow create: if request.auth != null && request.resource.data.authorUid == request.auth.uid;
+      allow create: if request.auth != null
+                    && request.resource.data.authorUid == request.auth.uid
+                    && (
+                      !request.resource.data.keys().hasAny(['donationRecordId']) ||
+                      (request.resource.data.donationRecordId is string &&
+                       exists(/databases/$(database)/documents/donation_history/$(request.resource.data.donationRecordId)) &&
+                       get(/databases/$(database)/documents/donation_history/$(request.resource.data.donationRecordId)).data.donorUid == request.auth.uid &&
+                       get(/databases/$(database)/documents/donation_history/$(request.resource.data.donationRecordId)).data.status == 'confirmed')
+                    );
       allow update: if request.auth != null && (
         (resource.data.authorUid == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'imageUrl']) && request.resource.data.authorUid == resource.data.authorUid && request.resource.data.createdAt == resource.data.createdAt) ||
         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount']) &&
