@@ -82,13 +82,13 @@ class _LoginScreenState extends State<LoginScreen> {
             controller: resetEmailController,
             keyboardType: TextInputType.emailAddress,
             decoration: InputDecoration(
-              labelText: _selectedLanguage == 'বাংলা' ? 'আপনার ইমেইল দিন' : 'Enter your email',
+              labelText: isBangla(context) ? 'আপনার ইমেইল দিন' : 'Enter your email',
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text(_selectedLanguage == 'বাংলা' ? 'বাতিল' : 'Cancel'),
+              child: Text(isBangla(context) ? 'বাতিল' : 'Cancel'),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
@@ -112,7 +112,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   }
                 }
               },
-              child: Text(_selectedLanguage == 'বাংলা' ? 'পাঠান' : 'Send', style: const TextStyle(color: Colors.white)),
+              child: Text(isBangla(context) ? 'পাঠান' : 'Send', style: const TextStyle(color: Colors.white)),
             ),
           ],
         );
@@ -207,7 +207,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     decoration: InputDecoration(
-                      labelText: _selectedLanguage == 'বাংলা' ? 'ইমেইল' : 'Email',
+                      labelText: isBangla(context) ? 'ইমেইল' : 'Email',
                       prefixIcon: const Icon(Icons.email_outlined, color: Colors.redAccent),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -219,7 +219,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return _selectedLanguage == 'বাংলা' ? 'দয়া করে ইমেইল দিন' : 'Please enter your email';
+                        return isBangla(context) ? 'দয়া করে ইমেইল দিন' : 'Please enter your email';
                       }
                       return null;
                     },
@@ -229,7 +229,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     controller: _passwordController,
                     obscureText: true,
                     decoration: InputDecoration(
-                      labelText: _selectedLanguage == 'বাংলা' ? 'পাসওয়ার্ড' : 'Password',
+                      labelText: isBangla(context) ? 'পাসওয়ার্ড' : 'Password',
                       prefixIcon: const Icon(Icons.lock_outline, color: Colors.redAccent),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -241,7 +241,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return _selectedLanguage == 'বাংলা' ? 'দয়া করে পাসওয়ার্ড দিন' : 'Please enter your password';
+                        return isBangla(context) ? 'দয়া করে পাসওয়ার্ড দিন' : 'Please enter your password';
                       }
                       return null;
                     },
@@ -252,7 +252,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: TextButton(
                       onPressed: _handleForgotPassword,
                       child: Text(
-                        _selectedLanguage == 'বাংলা' ? 'পাসওয়ার্ড ভুলে গেছেন?' : 'Forgot Password?',
+                        isBangla(context) ? 'পাসওয়ার্ড ভুলে গেছেন?' : 'Forgot Password?',
                         style: const TextStyle(
                           color: Colors.redAccent,
                           fontWeight: FontWeight.w600,
@@ -279,7 +279,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
                           )
                         : Text(
-                            _selectedLanguage == 'বাংলা' ? 'লগইন' : 'Login',
+                            isBangla(context) ? 'লগইন' : 'Login',
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -298,7 +298,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     onPressed: _handleRegister,
                     child: Text(
-                      _selectedLanguage == 'বাংলা' ? 'রেজিস্ট্রেশন করুন' : 'Register',
+                      isBangla(context) ? 'রেজিস্ট্রেশন করুন' : 'Register',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
