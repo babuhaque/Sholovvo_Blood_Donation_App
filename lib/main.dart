@@ -5,12 +5,14 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'firebase_options.dart';
 import 'screens/splash_screen.dart';
 import 'theme_controller.dart';
+import 'locale_controller.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Restore the user's saved app theme before the first frame.
   await loadSavedTheme();
+  await loadSavedLocale();
 
   // Initialize Firebase
   await Firebase.initializeApp(
@@ -36,13 +38,18 @@ class SholovvoApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<ThemeMode>(
-      valueListenable: appThemeMode,
-      builder: (context, themeMode, child) {
+    return ValueListenableBuilder<Locale>(
+      valueListenable: appLocale,
+      builder: (context, locale, child) {
+        return ValueListenableBuilder<ThemeMode>(
+          valueListenable: appThemeMode,
+          builder: (context, themeMode, child) {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           title: 'Sholovvo',
           themeMode: themeMode,
+          locale: locale,
+          supportedLocales: const [Locale('en'), Locale('bn')],
           theme: ThemeData(
             colorScheme: ColorScheme.fromSeed(seedColor: Colors.redAccent),
             useMaterial3: true,
@@ -57,6 +64,8 @@ class SholovvoApp extends StatelessWidget {
             brightness: Brightness.dark,
           ),
           home: const SplashScreen(),
+          );
+          },
         );
       },
     );
