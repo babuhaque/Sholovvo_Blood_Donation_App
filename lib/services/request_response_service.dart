@@ -70,7 +70,7 @@ class RequestResponseService {
           throw FirebaseException(
             plugin: 'cloud_firestore',
             code: 'failed-precondition',
-            message: 'Cannot respond to a request that is not open (Status: $requestStatus).',
+            message: requestStatus == 'accepted' ? 'Another donor has already accepted this request.' : 'Cannot respond to a request that is not open (Status: $requestStatus).',
           );
         }
 
@@ -142,6 +142,15 @@ class RequestResponseService {
             'requestId': response.requestId,
             'donorId': response.donorId,
             'responseId': responseId,
+          });
+        }
+
+        // First successful ACCEPT atomically claims the request.
+        if (response.status == 'accepted') {
+          transaction.update(bloodReqRef, {
+            'status': 'accepted',
+            'assignedDonorId': response.donorId,
+            'acceptedAt': FieldValue.serverTimestamp(),
           });
         }
       });
