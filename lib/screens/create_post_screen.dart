@@ -7,7 +7,8 @@ import '../services/profile_service.dart';
 import '../models/user_profile.dart';
 
 class CreatePostScreen extends StatefulWidget {
-  const CreatePostScreen({super.key});
+  final String? donationRecordId;
+  const CreatePostScreen({super.key, this.donationRecordId});
 
   @override
   State<CreatePostScreen> createState() => _CreatePostScreenState();
@@ -79,6 +80,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           authorEmail: _currentUser.email ?? '',
           text: _textController.text.trim(),
           imageFile: _selectedImage,
+          donationRecordId: widget.donationRecordId,
         );
 
         if (!mounted) return;
@@ -104,7 +106,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Create Community Post'),
+        title: Text(widget.donationRecordId == null ? 'Create Community Post' : 'Share Blood Donation'),
         backgroundColor: Colors.redAccent,
       ),
       body: SingleChildScrollView(
@@ -126,6 +128,13 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                     _errorMessage,
                     style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w500),
                   ),
+                ),
+              if (widget.donationRecordId != null)
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+                  child: const Row(children: [Icon(Icons.verified, color: Colors.green), SizedBox(width: 8), Expanded(child: Text('This post will be linked to your recipient-confirmed blood donation.'))]),
                 ),
               TextFormField(
                 controller: _textController,
