@@ -1,0 +1,16 @@
+{
+  "name": "sholovvo-scheduled-functions",
+  "description": "Scheduled backend tasks for Solovvo",
+  "private": true,
+  "engines": {
+    "node": "20"
+  },
+  "main": "index.js",
+  "scripts": {
+    "lint": "echo \"No lint script configured\""
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.2",
+    "firebase-functions": "^6.3.2"
+  }
+}
