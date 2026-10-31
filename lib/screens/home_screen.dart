@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
 import '../services/auth_service.dart';
 import '../services/notification_service.dart';
 import '../services/profile_service.dart';
 import '../services/location_service.dart';
 import '../services/post_service.dart';
+import '../services/donation_history_service.dart';
 import '../models/app_notification.dart';
 import '../models/post.dart';
 import '../models/comment.dart';
 import '../models/user_profile.dart';
+import '../models/donation_record.dart';
 import 'login_screen.dart';
 import 'profile_screen.dart';
 import 'create_blood_request_screen.dart';
@@ -434,6 +437,31 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           const Divider(height: 1),
+
+          // Share a donation only after the recipient has confirmed it.
+          if (user != null)
+            StreamBuilder<List<DonationRecord>>(
+              stream: DonationHistoryService().getDonorDonations(user.uid),
+              builder: (context, donationSnapshot) {
+                final confirmed = (donationSnapshot.data ?? [])
+                    .where((record) => record.status == 'confirmed')
+                    .toList();
+                if (confirmed.isEmpty) return const SizedBox.shrink();
+                return Card(
+                  margin: const EdgeInsets.fromLTRB(12, 10, 12, 4),
+                  child: ListTile(
+                    leading: const CircleAvatar(backgroundColor: Color(0xFFE8F5E9), child: Icon(Icons.volunteer_activism, color: Colors.green)),
+                    title: const Text('Share Your Blood Donation', style: TextStyle(fontWeight: FontWeight.bold)),
+                    subtitle: Text('${confirmed.length} confirmed donation(s) available to share'),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () {
+                      final record = confirmed.first;
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => CreatePostScreen(donationRecordId: record.id)));
+                    },
+                  ),
+                );
+              },
+            ),
 
           // Community Feed Stream
           Expanded(
