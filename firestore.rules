@@ -122,6 +122,29 @@ service cloud.firestore {
       allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
 
+
+    // One recipient rating per completed donation (document ID is the blood request ID).
+    match /donation_ratings/{requestId} {
+      allow read: if request.auth != null &&
+        (resource.data.recipientUid == request.auth.uid || resource.data.donorUid == request.auth.uid);
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasAll(['requestId', 'donorUid', 'recipientUid', 'stars', 'review', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['requestId', 'donorUid', 'recipientUid', 'stars', 'review', 'createdAt'])
+        && request.resource.data.requestId == requestId
+        && request.resource.data.recipientUid == request.auth.uid
+        && request.resource.data.stars is int
+        && request.resource.data.stars >= 1
+        && request.resource.data.stars <= 5
+        && request.resource.data.review is string
+        && request.resource.data.review.size() <= 300
+        && request.resource.data.createdAt == request.time
+        && exists(/databases/$(database)/documents/blood_requests/$(requestId))
+        && get(/databases/$(database)/documents/blood_requests/$(requestId)).data.userId == request.auth.uid
+        && get(/databases/$(database)/documents/blood_requests/$(requestId)).data.status == 'fulfilled'
+        && get(/databases/$(database)/documents/blood_requests/$(requestId)).data.assignedDonorId == request.resource.data.donorUid;
+      allow update, delete: if false;
+    }
+
     // --- Donation History Collection ---
     match /donation_history/{recordId} {
       // Read: Only the owning donor can read their private donation history
