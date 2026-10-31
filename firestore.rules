@@ -17,7 +17,22 @@ service cloud.firestore {
     match /blood_requests/{requestId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+      // The owner may manage their request. A matching, available donor may
+      // atomically claim an open request; only the first transaction can win.
+      allow update: if request.auth != null && (
+        resource.data.userId == request.auth.uid ||
+        (
+          resource.data.status == 'open' &&
+          request.resource.data.status == 'accepted' &&
+          request.resource.data.assignedDonorId == request.auth.uid &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'assignedDonorId', 'acceptedAt']) &&
+          exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'donor' &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAvailable == true &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.bloodGroup == resource.data.bloodGroup
+        )
+      );
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
 
     // Request responses collection (Secured: read by donor or request owner; create/update with immutable IDs & valid status)
@@ -30,7 +45,19 @@ service cloud.firestore {
       allow create: if request.auth != null
                     && request.resource.data.donorId == request.auth.uid
                     && request.resource.data.requestId is string
-                    && request.resource.data.status in ['accepted', 'declined', 'pending'];
+                    && request.resource.data.status in ['accepted', 'declined']
+                    && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+                    && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'donor'
+                    && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAvailable == true
+                    && exists(/databases/$(database)/documents/blood_requests/$(request.resource.data.requestId))
+                    && get(/databases/$(database)/documents/blood_requests/$(request.resource.data.requestId)).data.bloodGroup == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.bloodGroup
+                    && (
+                      (request.resource.data.status == 'declined' &&
+                       get(/databases/$(database)/documents/blood_requests/$(request.resource.data.requestId)).data.status == 'open') ||
+                      (request.resource.data.status == 'accepted' &&
+                       getAfter(/databases/$(database)/documents/blood_requests/$(request.resource.data.requestId)).data.status == 'accepted' &&
+                       getAfter(/databases/$(database)/documents/blood_requests/$(request.resource.data.requestId)).data.assignedDonorId == request.auth.uid)
+                    );
       allow update: if request.auth != null
                     && resource.data.donorId == request.auth.uid
                     && request.resource.data.donorId == resource.data.donorId
