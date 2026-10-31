@@ -9,6 +9,7 @@ class Post {
   final String? imageUrl;
   final int likeCount;
   final DateTime? createdAt;
+  final String? donationRecordId;
 
   Post({
     required this.id,
@@ -19,6 +20,7 @@ class Post {
     this.imageUrl,
     required this.likeCount,
     this.createdAt,
+    this.donationRecordId,
   });
 
   Map<String, dynamic> toMap() {
@@ -30,6 +32,7 @@ class Post {
       'imageUrl': imageUrl,
       'likeCount': likeCount,
       'createdAt': FieldValue.serverTimestamp(),
+      if (donationRecordId != null) 'donationRecordId': donationRecordId,
     };
   }
 
@@ -43,6 +46,7 @@ class Post {
       imageUrl: map['imageUrl'],
       likeCount: map['likeCount'] ?? 0,
       createdAt: map['createdAt'] != null ? (map['createdAt'] as Timestamp).toDate() : null,
+      donationRecordId: map['donationRecordId'],
     );
   }
 }
