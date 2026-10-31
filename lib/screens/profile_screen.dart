@@ -385,7 +385,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
         double? lng = position?.longitude ?? _cachedLongitude;
         DateTime? updatedTime = position != null ? DateTime.now() : _locationUpdatedAt;
 
-        bool availableStatus = _selectedRole == 'donor' ? _isAvailable : false;
+        // A donor cannot be marked available until 90 days have passed
+        // since the last donation. Keep a donor's manual OFF choice otherwise.
+        final rawDonationDate = _lastDonationController.text.trim();
+        final parsedDonationDate = rawDonationDate.isEmpty
+            ? null
+            : DateTime.tryParse(rawDonationDate);
+        final donationIntervalPassed = rawDonationDate.isEmpty ||
+            (parsedDonationDate != null &&
+                !parsedDonationDate.isAfter(DateTime.now()) &&
+                DateTime.now().difference(parsedDonationDate).inDays >= 90);
+        final bool availableStatus = _selectedRole == 'donor' &&
+            donationIntervalPassed &&
+            _isAvailable;
 
         UserProfile profile = UserProfile(
           uid: _currentUser.uid,
@@ -406,6 +418,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         await _profileService.saveProfile(profile);
 
         setState(() {
+          _isAvailable = availableStatus;
           _cachedLatitude = lat;
           _cachedLongitude = lng;
           if (position != null) _locationUpdatedAt = updatedTime;
