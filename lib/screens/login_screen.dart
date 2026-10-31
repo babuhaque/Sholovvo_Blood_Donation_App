@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../locale_controller.dart';
 import 'register_screen.dart';
 import 'home_screen.dart';
 
@@ -16,7 +17,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final AuthService _authService = AuthService();
 
-  String _selectedLanguage = 'English';
   bool _isLoading = false;
   String _errorMessage = '';
 
@@ -77,7 +77,7 @@ class _LoginScreenState extends State<LoginScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text(_selectedLanguage == 'বাংলা' ? 'পাসওয়ার্ড রিকভারি' : 'Reset Password'),
+          title: Text(isBangla(context) ? 'পাসওয়ার্ড রিকভারি' : 'Reset Password'),
           content: TextField(
             controller: resetEmailController,
             keyboardType: TextInputType.emailAddress,
@@ -131,14 +131,14 @@ class _LoginScreenState extends State<LoginScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: DropdownButton<String>(
-              value: _selectedLanguage,
+              value: isBangla(context) ? 'bn' : 'en',
               underline: const SizedBox(),
               icon: const Icon(Icons.language, color: Colors.redAccent),
-              items: ['English', 'বাংলা'].map((String lang) {
+              items: const [('en', 'English'), ('bn', 'বাংলা')].map((entry) {
                 return DropdownMenuItem<String>(
-                  value: lang,
+                  value: entry.$1,
                   child: Text(
-                    lang,
+                    entry.$2,
                     style: const TextStyle(
                       color: Colors.redAccent,
                       fontWeight: FontWeight.bold,
@@ -147,11 +147,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 );
               }).toList(),
               onChanged: (String? newValue) {
-                if (newValue != null) {
-                  setState(() {
-                    _selectedLanguage = newValue;
-                  });
-                }
+                if (newValue != null) setAppLocale(newValue);
               },
             ),
           ),
