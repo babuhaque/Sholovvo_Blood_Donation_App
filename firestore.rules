@@ -1,0 +1,114 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users collection (Public profile data & private sensitive PII subcollection)
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+
+      // Private sensitive PII subcollection (Strict owner-only read/write)
+      match /private/{privateDoc} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // Blood requests collection
+    match /blood_requests/{requestId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    // Request responses collection (Secured: read by donor or request owner; create/update with immutable IDs & valid status)
+    match /request_responses/{responseId} {
+      allow read: if request.auth != null && (
+        resource.data.donorId == request.auth.uid ||
+        (exists(/databases/$(database)/documents/blood_requests/$(resource.data.requestId)) &&
+         get(/databases/$(database)/documents/blood_requests/$(resource.data.requestId)).data.userId == request.auth.uid)
+      );
+      allow create: if request.auth != null
+                    && request.resource.data.donorId == request.auth.uid
+                    && request.resource.data.requestId is string
+                    && request.resource.data.status in ['accepted', 'declined', 'pending'];
+      allow update: if request.auth != null
+                    && resource.data.donorId == request.auth.uid
+                    && request.resource.data.donorId == resource.data.donorId
+                    && request.resource.data.requestId == resource.data.requestId
+                    && request.resource.data.status in ['accepted', 'declined', 'pending']
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'donorName', 'donorPhone', 'createdAt']);
+      allow delete: if request.auth != null && resource.data.donorId == request.auth.uid;
+    }
+
+    // Notifications collection (Secured: recipientUid present, verified request or response existence for non-self notifications)
+    match /notifications/{notificationId} {
+      allow read, update, delete: if request.auth != null && resource.data.recipientUid == request.auth.uid;
+      allow create: if request.auth != null
+                    && request.resource.data.recipientUid is string
+                    && request.resource.data.recipientUid.size() > 0
+                    && (
+                      request.resource.data.recipientUid == request.auth.uid ||
+                      (request.resource.data.type == 'new_request' &&
+                       exists(/databases/$(database)/documents/blood_requests/$(request.resource.data.requestId))) ||
+                      (request.resource.data.type == 'donor_response' &&
+                       exists(/databases/$(database)/documents/request_responses/$(request.resource.data.requestId)))
+                    );
+    }
+
+    // Posts and comments collection (Author can update text/imageUrl; likeCount restricted to exact +1 or -1 change)
+    match /posts/{postId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.authorUid == request.auth.uid;
+      allow update: if request.auth != null && (
+        (resource.data.authorUid == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'imageUrl']) && request.resource.data.authorUid == resource.data.authorUid && request.resource.data.createdAt == resource.data.createdAt) ||
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount']) &&
+         (request.resource.data.likeCount == resource.data.likeCount + 1 || request.resource.data.likeCount == resource.data.likeCount - 1))
+      );
+      allow delete: if request.auth != null && resource.data.authorUid == request.auth.uid;
+
+      match /comments/{commentId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null && request.resource.data.authorUid == request.auth.uid;
+        allow delete: if request.auth != null && resource.data.authorUid == request.auth.uid;
+      }
+    }
+
+    // Post likes collection (Validated create on userId, delete on existing resource.data.userId)
+    match /post_likes/{likeId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    // --- Donation History Collection ---
+    match /donation_history/{recordId} {
+      // Read: Only the owning donor can read their private donation history
+      allow read: if request.auth != null && resource.data.donorUid == request.auth.uid;
+
+      // Create: Strict keys presence, allowed keys, type validations, pending status, nullable donationDate and requestId
+      allow create: if request.auth != null
+                    && request.resource.data.keys().hasAll(['donorUid', 'bloodGroup', 'hospitalName', 'status', 'createdAt'])
+                    && request.resource.data.keys().hasOnly(['donorUid', 'bloodGroup', 'hospitalName', 'status', 'createdAt', 'donationDate', 'requestId'])
+                    && request.resource.data.donorUid is string
+                    && request.resource.data.donorUid == request.auth.uid
+                    && request.resource.data.status is string
+                    && request.resource.data.status == 'pending'
+                    && request.resource.data.hospitalName is string
+                    && request.resource.data.hospitalName.size() > 0
+                    && request.resource.data.bloodGroup is string
+                    && request.resource.data.bloodGroup in ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
+                    && request.resource.data.createdAt is timestamp
+                    && request.resource.data.createdAt == request.time
+                    && (!request.resource.data.keys().hasAll(['donationDate']) || request.resource.data.donationDate is timestamp || request.resource.data.donationDate == null)
+                    && (!request.resource.data.keys().hasAll(['requestId']) || request.resource.data.requestId is string || request.resource.data.requestId == null);
+
+      // Update: Disabled entirely for clients to prevent any tampering with pending records
+      allow update: if false;
+
+      // Delete: Owner can delete only pending records
+      allow delete: if request.auth != null
+                    && resource.data.donorUid == request.auth.uid
+                    && resource.data.status == 'pending';
+    }
+  }
+}
