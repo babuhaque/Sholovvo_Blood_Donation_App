@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../locale_controller.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/post.dart';
 import '../services/post_service.dart';
@@ -14,12 +15,12 @@ class ActivityScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Activity'),
+        title: Text(appText(context, 'My Activity', 'আমার কার্যক্রম')),
         backgroundColor: Colors.redAccent,
         foregroundColor: Colors.white,
       ),
       body: user == null
-          ? const Center(child: Text('Please log in to view your activity.'))
+          ? Center(child: Text(appText(context, 'Please log in to view your activity.', 'আপনার কার্যক্রম দেখতে লগইন করুন।')))
           : StreamBuilder<List<Post>>(
               stream: postService.getUserPosts(user.uid),
               builder: (context, snapshot) {
@@ -43,7 +44,7 @@ class ActivityScreen extends StatelessWidget {
                           const Icon(Icons.history, size: 64, color: Colors.grey),
                           const SizedBox(height: 12),
                           const Text(
-                            'You have not shared any posts yet.',
+                            appText(context, 'You have not shared any posts yet.', 'আপনি এখনো কোনো পোস্ট শেয়ার করেননি।'),
                             textAlign: TextAlign.center,
                             style: TextStyle(color: Colors.grey, fontSize: 16),
                           ),
@@ -54,7 +55,7 @@ class ActivityScreen extends StatelessWidget {
                               MaterialPageRoute(builder: (_) => const CreatePostScreen()),
                             ),
                             icon: const Icon(Icons.add),
-                            label: const Text('Create Post'),
+                            label: Text(appText(context, 'Create Post', 'পোস্ট তৈরি করুন')),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.redAccent,
                               foregroundColor: Colors.white,
@@ -112,7 +113,7 @@ class _ActivityPostCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                const Chip(label: Text('My post')),
+                Chip(label: Text(appText(context, 'My post', 'আমার পোস্ট'))),
               ],
             ),
             if (post.text.isNotEmpty) ...[
