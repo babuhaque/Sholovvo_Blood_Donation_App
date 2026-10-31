@@ -55,7 +55,8 @@ class MyAcceptedRequestsScreen extends StatelessWidget {
                   padding: const EdgeInsets.all(12),
                   itemCount: docs.length,
                   itemBuilder: (context, index) {
-                    final data = docs[index].data();
+                    final requestDoc = docs[index];
+                    final data = requestDoc.data();
                     final patientName = (data['patientName'] ?? 'Patient').toString();
                     final bloodGroup = (data['bloodGroup'] ?? '').toString();
                     final hospitalName = (data['hospitalName'] ?? '').toString();
@@ -131,7 +132,7 @@ class MyAcceptedRequestsScreen extends StatelessWidget {
                                     try {
                                       await FirebaseFirestore.instance
                                           .collection('blood_requests')
-                                          .doc(doc.id)
+                                          .doc(requestDoc.id)
                                           .update({
                                         'status': 'donation_completed',
                                         'completedAt': FieldValue.serverTimestamp(),
@@ -139,7 +140,7 @@ class MyAcceptedRequestsScreen extends StatelessWidget {
                                       // Notify the recipient after the request status is committed.
                                       await NotificationService().createNotification(
                                         recipientUid: (data['userId'] ?? '').toString(),
-                                        requestId: doc.id,
+                                        requestId: requestDoc.id,
                                         type: 'donation_completed',
                                         title: 'Donor marked donation completed',
                                         body: 'The donor has marked the ${bloodGroup} donation for $patientName as completed. Please confirm receipt.',
