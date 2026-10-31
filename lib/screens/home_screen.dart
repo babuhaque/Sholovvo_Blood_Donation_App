@@ -18,6 +18,7 @@ import 'nearby_blood_requests_screen.dart';
 import 'notifications_screen.dart';
 import 'create_post_screen.dart';
 import 'activity_screen.dart';
+import '../theme_controller.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -289,13 +290,20 @@ class _HomeScreenState extends State<HomeScreen> {
                 case 'settings':
                   _showInfoDialog(
                     'Settings',
-                    'App preferences will be available here. Language and theme controls are planned for a later update.',
+                    'Language preferences and other app settings will be added here in a future update.',
                   );
                   break;
                 case 'theme':
-                  _showInfoDialog(
-                    'Theme',
-                    'Dark and light theme switching is not connected yet. It will be added with app-wide theme settings.',
+                  toggleAppTheme();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        appThemeMode.value == ThemeMode.dark
+                            ? 'Dark mode enabled'
+                            : 'Light mode enabled',
+                      ),
+                      duration: const Duration(seconds: 2),
+                    ),
                   );
                   break;
                 case 'about':
