@@ -7,7 +7,27 @@ import '../models/blood_request.dart';
 import '../services/notification_service.dart';
 import 'donor_discovery_screen.dart';
 import 'nearby_blood_requests_screen.dart';
+import 'my_accepted_requests_screen.dart';
 
+Color _notificationColor(String type) {
+  switch (type) {
+    case 'new_request': return Colors.redAccent;
+    case 'donor_response': return Colors.blue;
+    case 'donation_completed': return Colors.orange;
+    case 'donation_confirmed': return Colors.green;
+    default: return Colors.grey;
+  }
+}
+
+IconData _notificationIcon(String type) {
+  switch (type) {
+    case 'new_request': return Icons.water_drop;
+    case 'donor_response': return Icons.volunteer_activism;
+    case 'donation_completed': return Icons.hourglass_top;
+    case 'donation_confirmed': return Icons.verified;
+    default: return Icons.notifications;
+  }
+}
 class NotificationsScreen extends StatelessWidget {
   const NotificationsScreen({super.key});
 
@@ -19,6 +39,10 @@ class NotificationsScreen extends StatelessWidget {
     if (!context.mounted) return;
 
     try {
+      if (notification.type == 'donation_confirmed') {
+        Navigator.push(context, MaterialPageRoute(builder: (context) => const MyAcceptedRequestsScreen()));
+        return;
+      }
       DocumentSnapshot doc = await FirebaseFirestore.instance.collection('blood_requests').doc(notification.requestId).get();
       if (doc.exists && doc.data() != null) {
         BloodRequest request = BloodRequest.fromMap(doc.data() as Map<String, dynamic>, doc.id);
@@ -109,11 +133,8 @@ class NotificationsScreen extends StatelessWidget {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 child: ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: notif.type == 'new_request' ? Colors.redAccent : Colors.green,
-                    child: Icon(
-                      notif.type == 'new_request' ? Icons.water_drop : Icons.people,
-                      color: Colors.white,
-                    ),
+                    backgroundColor: _notificationColor(notif.type),
+                    child: Icon(_notificationIcon(notif.type), color: Colors.white),
                   ),
                   title: Text(
                     notif.title,
