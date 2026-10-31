@@ -16,6 +16,7 @@ import 'login_screen.dart';
 import 'profile_screen.dart';
 import 'create_blood_request_screen.dart';
 import 'my_blood_requests_screen.dart';
+import 'my_accepted_requests_screen.dart';
 import 'nearby_blood_requests_screen.dart';
 import 'notifications_screen.dart';
 import 'create_post_screen.dart';
@@ -290,6 +291,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 case 'profile':
                   setState(() => _selectedIndex = 3);
                   break;
+                case 'accepted_requests':
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const MyAcceptedRequestsScreen()),
+                  );
+                  break;
                 case 'language':
                   showDialog<void>(
                     context: context,
@@ -365,6 +372,10 @@ class _HomeScreenState extends State<HomeScreen> {
               PopupMenuItem(value: 'profile', child: ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: Icon(Icons.person_outline), title: Text('My Profile'),
+              )),
+              PopupMenuItem(value: 'accepted_requests', child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.volunteer_activism_outlined), title: Text('My Accepted Requests'),
               )),
               PopupMenuItem(value: 'language', child: ListTile(
                 contentPadding: EdgeInsets.zero,
