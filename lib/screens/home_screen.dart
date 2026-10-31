@@ -187,8 +187,8 @@ class _HomeScreenState extends State<HomeScreen> {
       selectedItemColor: Colors.redAccent,
       unselectedItemColor: Colors.grey,
       onTap: (index) => setState(() => _selectedIndex = index),
-      items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: appText(context, 'Home', 'হোম')),
+      items: [
+        BottomNavigationBarItem(icon: const Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: appText(context, 'Home', 'হোম')),
         BottomNavigationBarItem(icon: Icon(Icons.notifications_none), activeIcon: Icon(Icons.notifications), label: appText(context, 'Notification', 'নোটিফিকেশন')),
         BottomNavigationBarItem(icon: Icon(Icons.local_activity_outlined), activeIcon: Icon(Icons.local_activity), label: appText(context, 'Activity', 'কার্যক্রম')),
         BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: appText(context, 'My Account', 'আমার অ্যাকাউন্ট')),
