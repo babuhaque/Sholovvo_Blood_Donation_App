@@ -553,6 +553,27 @@ class _HomeScreenState extends State<HomeScreen> {
                                       post.createdAt != null ? '${post.createdAt!.toLocal()}'.substring(0, 16) : 'Just now',
                                       style: const TextStyle(fontSize: 12, color: Colors.grey),
                                     ),
+                                    StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                                      stream: FirebaseFirestore.instance
+                                          .collection('donation_ratings')
+                                          .where('donorUid', isEqualTo: post.authorUid)
+                                          .snapshots(),
+                                      builder: (context, ratingSnapshot) {
+                                        final ratings = ratingSnapshot.data?.docs ?? [];
+                                        final values = ratings
+                                            .map((doc) => (doc.data()['stars'] as num?)?.toDouble() ?? 0)
+                                            .where((value) => value >= 1 && value <= 5)
+                                            .toList();
+                                        if (values.isEmpty) return const SizedBox.shrink();
+                                        final average = values.reduce((a, b) => a + b) / values.length;
+                                        return Row(mainAxisSize: MainAxisSize.min, children: [
+                                          const Icon(Icons.star, color: Colors.amber, size: 14),
+                                          const SizedBox(width: 3),
+                                          Text('${average.toStringAsFixed(1)} · ${values.length} review(s)',
+                                              style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                                        ]);
+                                      },
+                                    ),
                                   ],
                                 ),
                               ],
