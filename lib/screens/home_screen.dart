@@ -215,6 +215,22 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _showInfoDialog(String title, String message) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = _authService.currentUser;
@@ -262,27 +278,85 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
           ),
-          IconButton(
-            icon: const Icon(Icons.person),
-            tooltip: 'Profile',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const ProfileScreen()),
-              );
+          PopupMenuButton<String>(
+            tooltip: 'More options',
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) async {
+              switch (value) {
+                case 'profile':
+                  setState(() => _selectedIndex = 3);
+                  break;
+                case 'settings':
+                  _showInfoDialog(
+                    'Settings',
+                    'App preferences will be available here. Language and theme controls are planned for a later update.',
+                  );
+                  break;
+                case 'theme':
+                  _showInfoDialog(
+                    'Theme',
+                    'Dark and light theme switching is not connected yet. It will be added with app-wide theme settings.',
+                  );
+                  break;
+                case 'about':
+                  _showInfoDialog(
+                    'About Sholovvo',
+                    'Sholovvo is a community platform designed to connect blood donors with people who need blood.',
+                  );
+                  break;
+                case 'help':
+                  _showInfoDialog(
+                    'Help',
+                    'Use the + button to create a post or start a blood request. Use the bottom navigation to view notifications, your activity, and your account.',
+                  );
+                  break;
+                case 'faq':
+                  _showInfoDialog(
+                    'FAQ',
+                    'Q: How can I find donors?\nA: Use the + button and choose the donor search or emergency blood request option.\n\nQ: Can I control my donor availability?\nA: Open My Account to manage your profile and availability.',
+                  );
+                  break;
+                case 'logout':
+                  await _authService.signOut();
+                  if (!mounted) return;
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => const LoginScreen()),
+                  );
+                  break;
+              }
             },
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Logout',
-            onPressed: () async {
-              await _authService.signOut();
-              if (!context.mounted) return;
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const LoginScreen()),
-              );
-            },
+            itemBuilder: (context) => const [
+              PopupMenuItem(value: 'profile', child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.person_outline), title: Text('My Profile'),
+              )),
+              PopupMenuItem(value: 'settings', child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.settings_outlined), title: Text('Settings'),
+              )),
+              PopupMenuItem(value: 'theme', child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.dark_mode_outlined), title: Text('Dark / Light Theme'),
+              )),
+              PopupMenuItem(value: 'about', child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.info_outline), title: Text('About App'),
+              )),
+              PopupMenuItem(value: 'help', child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.help_outline), title: Text('Help'),
+              )),
+              PopupMenuItem(value: 'faq', child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.quiz_outlined), title: Text('FAQ'),
+              )),
+              PopupMenuDivider(),
+              PopupMenuItem(value: 'logout', child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.logout, color: Colors.red), title: Text('Logout'),
+              )),
+            ],
           ),
         ],
       ),
