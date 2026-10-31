@@ -130,11 +130,23 @@ service cloud.firestore {
       // Create: Strict keys presence, allowed keys, type validations, pending status, nullable donationDate and requestId
       allow create: if request.auth != null
                     && request.resource.data.keys().hasAll(['donorUid', 'bloodGroup', 'hospitalName', 'status', 'createdAt'])
-                    && request.resource.data.keys().hasOnly(['donorUid', 'bloodGroup', 'hospitalName', 'status', 'createdAt', 'donationDate', 'requestId'])
+                    && request.resource.data.keys().hasOnly(['donorUid', 'bloodGroup', 'hospitalName', 'status', 'createdAt', 'donationDate', 'requestId', 'confirmedBy'])
                     && request.resource.data.donorUid is string
-                    && request.resource.data.donorUid == request.auth.uid
                     && request.resource.data.status is string
-                    && request.resource.data.status == 'pending'
+                    && (
+                      (request.resource.data.donorUid == request.auth.uid &&
+                       request.resource.data.status == 'pending' &&
+                       !request.resource.data.keys().hasAny(['confirmedBy']) &&
+                       request.resource.data.keys().hasAll(['donorUid', 'bloodGroup', 'hospitalName', 'status', 'createdAt'])) ||
+                      (request.resource.data.status == 'confirmed' &&
+                       request.resource.data.confirmedBy == request.auth.uid &&
+                       request.resource.data.requestId is string &&
+                       exists(/databases/$(database)/documents/blood_requests/$(request.resource.data.requestId)) &&
+                       get(/databases/$(database)/documents/blood_requests/$(request.resource.data.requestId)).data.userId == request.auth.uid &&
+                       get(/databases/$(database)/documents/blood_requests/$(request.resource.data.requestId)).data.status == 'donation_completed' &&
+                       get(/databases/$(database)/documents/blood_requests/$(request.resource.data.requestId)).data.assignedDonorId == request.resource.data.donorUid &&
+                       request.resource.data.keys().hasAll(['donorUid', 'bloodGroup', 'hospitalName', 'status', 'createdAt', 'donationDate', 'requestId', 'confirmedBy']))
+                    )
                     && request.resource.data.hospitalName is string
                     && request.resource.data.hospitalName.size() > 0
                     && request.resource.data.bloodGroup is string
