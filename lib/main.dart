@@ -9,6 +9,9 @@ import 'theme_controller.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Restore the user's saved app theme before the first frame.
+  await loadSavedTheme();
+
   // Initialize Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
