@@ -104,6 +104,41 @@ class ProfileService {
     }
   }
 
+  // Reconcile donor availability with the 90-day recovery interval.
+  // This runs when the donor opens their profile; true background scheduling
+  // requires a trusted server-side scheduled function.
+  Future<bool?> refreshDonationAvailability(String uid) async {
+    try {
+      final doc = await _firestore.collection('users').doc(uid).get();
+      if (!doc.exists) return null;
+
+      final data = doc.data()!;
+      if ((data['role'] ?? 'donor') != 'donor') return false;
+
+      final rawDate = (data['lastDonationDate'] ?? '').toString().trim();
+      if (rawDate.isEmpty) return data['isAvailable'] == true;
+
+      final lastDonation = DateTime.tryParse(rawDate);
+      if (lastDonation == null) return data['isAvailable'] == true;
+
+      final eligible = !lastDonation.isAfter(DateTime.now()) &&
+          DateTime.now().difference(lastDonation).inDays >= 90;
+      final current = data['isAvailable'] == true;
+
+      if (eligible && !current) {
+        await doc.reference.update({'isAvailable': true});
+        return true;
+      }
+      if (!eligible && current) {
+        await doc.reference.update({'isAvailable': false});
+        return false;
+      }
+      return current;
+    } catch (e) {
+      throw 'Failed to refresh donation availability: $e';
+    }
+  }
+
   // Update only availability status immediately
   Future<void> updateAvailability(String uid, bool isAvailable) async {
     try {
