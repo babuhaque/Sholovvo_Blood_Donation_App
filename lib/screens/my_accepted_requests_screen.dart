@@ -20,7 +20,6 @@ class MyAcceptedRequestsScreen extends StatelessWidget {
               stream: FirebaseFirestore.instance
                   .collection('blood_requests')
                   .where('assignedDonorId', isEqualTo: user.uid)
-                  .where('status', isEqualTo: 'accepted')
                   .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -30,7 +29,7 @@ class MyAcceptedRequestsScreen extends StatelessWidget {
                   return Center(child: Text('Could not load accepted requests: ${snapshot.error}'));
                 }
 
-                final docs = snapshot.data?.docs ?? [];
+                final docs = (snapshot.data?.docs ?? []).where((doc) => ['accepted', 'donation_completed'].contains(doc.data()['status'])).toList();
                 if (docs.isEmpty) {
                   return const Center(
                     child: Padding(
@@ -63,6 +62,7 @@ class MyAcceptedRequestsScreen extends StatelessWidget {
                     final bags = data['bloodBags'] ?? 1;
                     final phone = (data['phoneNumber'] ?? '').toString();
                     final requiredAt = (data['requiredDateTime'] ?? '').toString();
+                    final status = (data['status'] ?? 'accepted').toString();
 
                     return Card(
                       margin: const EdgeInsets.only(bottom: 12),
@@ -94,10 +94,61 @@ class MyAcceptedRequestsScreen extends StatelessWidget {
                             if (requiredAt.isNotEmpty) Text('Required: $requiredAt'),
                             if (phone.isNotEmpty) Text('Recipient phone: $phone'),
                             const SizedBox(height: 10),
-                            const Text(
-                              'You are the donor assigned to this request.',
-                              style: TextStyle(color: Colors.green, fontWeight: FontWeight.w600),
+                            Text(
+                              status == 'donation_completed'
+                                  ? 'Donation marked completed. Waiting for recipient confirmation.'
+                                  : 'You are the donor assigned to this request.',
+                              style: TextStyle(
+                                color: status == 'donation_completed' ? Colors.orange : Colors.green,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
+                            if (status == 'accepted') ...[
+                              const SizedBox(height: 12),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton.icon(
+                                  icon: const Icon(Icons.check_circle_outline),
+                                  label: const Text('Donation Completed'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green,
+                                    foregroundColor: Colors.white,
+                                  ),
+                                  onPressed: () async {
+                                    final confirm = await showDialog<bool>(
+                                      context: context,
+                                      builder: (dialogContext) => AlertDialog(
+                                        title: const Text('Confirm Donation'),
+                                        content: const Text('Have you completed the blood donation for this request?'),
+                                        actions: [
+                                          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Not yet')),
+                                          ElevatedButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Yes, completed')),
+                                        ],
+                                      ),
+                                    );
+                                    if (confirm != true) return;
+                                    try {
+                                      await FirebaseFirestore.instance
+                                          .collection('blood_requests')
+                                          .doc(doc.id)
+                                          .update({
+                                        'status': 'donation_completed',
+                                        'completedAt': FieldValue.serverTimestamp(),
+                                      });
+                                      if (!context.mounted) return;
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Marked completed. Waiting for recipient confirmation.')),
+                                      );
+                                    } catch (e) {
+                                      if (!context.mounted) return;
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('Could not update donation: $e')),
+                                      );
+                                    }
+                                  },
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),
