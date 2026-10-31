@@ -208,7 +208,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 14),
                 DropdownButtonFormField<String>(
-                  value: _bloodGroup,
+                  initialValue: _bloodGroup,
                   decoration: _decoration(appText(context, 'Blood group', 'রক্তের গ্রুপ'), Icons.bloodtype),
                   hint: Text(appText(context, 'Select blood group', 'রক্তের গ্রুপ নির্বাচন করুন')),
                   items: _bloodGroups.map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
@@ -217,7 +217,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 14),
                 DropdownButtonFormField<String>(
-                  value: _gender,
+                  initialValue: _gender,
                   decoration: _decoration(appText(context, 'Gender', 'লিঙ্গ'), Icons.people_outline),
                   hint: Text(appText(context, 'Select gender', 'লিঙ্গ নির্বাচন করুন')),
                   items: _genders.map((g) => DropdownMenuItem(
