@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/blood_request.dart';
 import '../services/blood_request_service.dart';
+import '../services/notification_service.dart';
 import 'create_blood_request_screen.dart';
 import 'donor_discovery_screen.dart';
 
@@ -235,6 +236,16 @@ class MyBloodRequestsScreen extends StatelessWidget {
                                 });
                                 batch.update(requestRef, {'status': 'fulfilled', 'fulfilledAt': FieldValue.serverTimestamp()});
                                 await batch.commit();
+                                // Notify the assigned donor after recipient confirmation.
+                                if (request.assignedDonorId != null) {
+                                  await NotificationService().createNotification(
+                                    recipientUid: request.assignedDonorId!,
+                                    requestId: request.id,
+                                    type: 'donation_confirmed',
+                                    title: 'Donation confirmed',
+                                    body: 'The recipient confirmed your ${request.bloodGroup} blood donation. Thank you!',
+                                  );
+                                }
                                 if (!context.mounted) return;
                                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Donation confirmed successfully.')));
                               } catch (e) {
