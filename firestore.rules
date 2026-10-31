@@ -125,8 +125,8 @@ service cloud.firestore {
 
     // One recipient rating per completed donation (document ID is the blood request ID).
     match /donation_ratings/{requestId} {
-      allow read: if request.auth != null &&
-        (resource.data.recipientUid == request.auth.uid || resource.data.donorUid == request.auth.uid);
+      // Ratings are public community feedback for donor profiles and feed cards.
+      allow read: if request.auth != null;
       allow create: if request.auth != null
         && request.resource.data.keys().hasAll(['requestId', 'donorUid', 'recipientUid', 'stars', 'review', 'createdAt'])
         && request.resource.data.keys().hasOnly(['requestId', 'donorUid', 'recipientUid', 'stars', 'review', 'createdAt'])
