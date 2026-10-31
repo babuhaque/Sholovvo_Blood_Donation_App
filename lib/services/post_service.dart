@@ -136,6 +136,7 @@ class PostService {
     required String authorEmail,
     required String text,
     XFile? imageFile,
+    String? donationRecordId,
   }) async {
     try {
       String? imageUrl;
@@ -151,6 +152,7 @@ class PostService {
         text: text,
         imageUrl: imageUrl,
         likeCount: 0,
+        donationRecordId: donationRecordId,
       );
 
       await _firestore.collection('posts').add(post.toMap());
