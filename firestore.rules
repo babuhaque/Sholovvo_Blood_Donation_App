@@ -85,7 +85,17 @@ service cloud.firestore {
                       (request.resource.data.type == 'new_request' &&
                        exists(/databases/$(database)/documents/blood_requests/$(request.resource.data.requestId))) ||
                       (request.resource.data.type == 'donor_response' &&
-                       exists(/databases/$(database)/documents/request_responses/$(request.resource.data.requestId)))
+                       exists(/databases/$(database)/documents/request_responses/$(request.resource.data.requestId))) ||
+                      (request.resource.data.type == 'donation_completed' &&
+                       exists(/databases/$(database)/documents/blood_requests/$(request.resource.data.requestId)) &&
+                       get(/databases/$(database)/documents/blood_requests/$(request.resource.data.requestId)).data.userId == request.resource.data.recipientUid &&
+                       get(/databases/$(database)/documents/blood_requests/$(request.resource.data.requestId)).data.assignedDonorId == request.auth.uid &&
+                       get(/databases/$(database)/documents/blood_requests/$(request.resource.data.requestId)).data.status == 'donation_completed') ||
+                      (request.resource.data.type == 'donation_confirmed' &&
+                       exists(/databases/$(database)/documents/blood_requests/$(request.resource.data.requestId)) &&
+                       get(/databases/$(database)/documents/blood_requests/$(request.resource.data.requestId)).data.assignedDonorId == request.resource.data.recipientUid &&
+                       get(/databases/$(database)/documents/blood_requests/$(request.resource.data.requestId)).data.userId == request.auth.uid &&
+                       get(/databases/$(database)/documents/blood_requests/$(request.resource.data.requestId)).data.status == 'fulfilled')
                     );
     }
 
