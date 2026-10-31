@@ -22,10 +22,17 @@ service cloud.firestore {
       allow update: if request.auth != null && (
         resource.data.userId == request.auth.uid ||
         (
-          resource.data.status == 'open' &&
-          request.resource.data.status == 'accepted' &&
-          request.resource.data.assignedDonorId == request.auth.uid &&
-          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'assignedDonorId', 'acceptedAt']) &&
+          (
+            (resource.data.status == 'open' &&
+             request.resource.data.status == 'accepted' &&
+             request.resource.data.assignedDonorId == request.auth.uid &&
+             request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'assignedDonorId', 'acceptedAt'])) ||
+            (resource.data.status == 'accepted' &&
+             resource.data.assignedDonorId == request.auth.uid &&
+             request.resource.data.status == 'donation_completed' &&
+             request.resource.data.assignedDonorId == resource.data.assignedDonorId &&
+             request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'completedAt']))
+          ) &&
           exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'donor' &&
           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAvailable == true &&
