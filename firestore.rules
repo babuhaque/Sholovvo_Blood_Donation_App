@@ -74,29 +74,96 @@ service cloud.firestore {
       allow delete: if request.auth != null && resource.data.donorId == request.auth.uid;
     }
 
+    // Response claims collection (Secured: one immutable claim per request/donor pair)
+    match /response_claims/{claimId} {
+      // A claim document is the transactional anchor that makes "first donor to
+      // accept wins" atomic. The booking transaction must read the claim *before*
+      // it exists, so reading a non-existent claim id is allowed; an existing claim
+      // remains readable only by the donor who owns it.
+      allow read: if request.auth != null && (
+        !exists(/databases/$(database)/documents/response_claims/$(claimId)) ||
+        resource.data.donorId == request.auth.uid
+      );
+
+      // Claims are only ever created, in the same transaction that writes the
+      // matching request_responses document. The claim must point at a response the
+      // caller actually owns for the same request. update/delete stay closed so a
+      // winning claim can never be released or reassigned.
+      allow create: if request.auth != null
+                    && request.resource.data.keys().hasAll(['requestId', 'donorId', 'responseId'])
+                    && request.resource.data.keys().hasOnly(['requestId', 'donorId', 'responseId'])
+                    && request.resource.data.requestId is string
+                    && request.resource.data.donorId is string
+                    && request.resource.data.donorId == request.auth.uid
+                    && request.resource.data.responseId is string
+                    && request.resource.data.responseId.size() > 0
+                    && existsAfter(/databases/$(database)/documents/request_responses/$(request.resource.data.responseId))
+                    && getAfter(/databases/$(database)/documents/request_responses/$(request.resource.data.responseId)).data.donorId == request.auth.uid
+                    && getAfter(/databases/$(database)/documents/request_responses/$(request.resource.data.responseId)).data.requestId == request.resource.data.requestId;
+
+      allow update, delete: if false;
+    }
+
     // Notifications collection (Secured: recipientUid present, verified request or response existence for non-self notifications)
     match /notifications/{notificationId} {
-      allow read, update, delete: if request.auth != null && resource.data.recipientUid == request.auth.uid;
+      // Predicate describing whether the caller may raise a notification for the
+      // recipient encoded in the payload. Used by both create and update so that
+      // idempotent re-writes cannot drift away from the original relationship.
+      //
+      // donor_response resolves the response document through responseId (NOT
+      // requestId, which points at blood_requests) and pins the notification to the
+      // donor who owns that response and the recipient who owns the request.
+      function isAuthorizedNotificationPayload() {
+        return request.resource.data.recipientUid is string
+          && request.resource.data.recipientUid.size() > 0
+          && request.resource.data.requestId is string
+          && request.resource.data.createdAt == request.time
+          && (
+            request.resource.data.recipientUid == request.auth.uid ||
+            (request.resource.data.type == 'new_request' &&
+             exists(/databases/$(database)/documents/blood_requests/$(request.resource.data.requestId))) ||
+            (request.resource.data.type == 'donor_response' &&
+             request.resource.data.responseId is string &&
+             request.resource.data.responseId.size() > 0 &&
+             exists(/databases/$(database)/documents/request_responses/$(request.resource.data.responseId)) &&
+             get(/databases/$(database)/documents/request_responses/$(request.resource.data.responseId)).data.donorId == request.auth.uid &&
+             get(/databases/$(database)/documents/request_responses/$(request.resource.data.responseId)).data.requestId == request.resource.data.requestId &&
+             exists(/databases/$(database)/documents/blood_requests/$(request.resource.data.requestId)) &&
+             get(/databases/$(database)/documents/blood_requests/$(request.resource.data.requestId)).data.userId == request.resource.data.recipientUid) ||
+            (request.resource.data.type == 'donation_completed' &&
+             exists(/databases/$(database)/documents/blood_requests/$(request.resource.data.requestId)) &&
+             get(/databases/$(database)/documents/blood_requests/$(request.resource.data.requestId)).data.userId == request.resource.data.recipientUid &&
+             get(/databases/$(database)/documents/blood_requests/$(request.resource.data.requestId)).data.assignedDonorId == request.auth.uid &&
+             get(/databases/$(database)/documents/blood_requests/$(request.resource.data.requestId)).data.status == 'donation_completed') ||
+            (request.resource.data.type == 'donation_confirmed' &&
+             exists(/databases/$(database)/documents/blood_requests/$(request.resource.data.requestId)) &&
+             get(/databases/$(database)/documents/blood_requests/$(request.resource.data.requestId)).data.assignedDonorId == request.resource.data.recipientUid &&
+             get(/databases/$(database)/documents/blood_requests/$(request.resource.data.requestId)).data.userId == request.auth.uid &&
+             get(/databases/$(database)/documents/blood_requests/$(request.resource.data.requestId)).data.status == 'fulfilled')
+          );
+      }
+
+      // Only the recipient can list, open, or delete their own notifications.
+      allow read, delete: if request.auth != null && resource.data.recipientUid == request.auth.uid;
+
       allow create: if request.auth != null
-                    && request.resource.data.recipientUid is string
-                    && request.resource.data.recipientUid.size() > 0
-                    && (
-                      request.resource.data.recipientUid == request.auth.uid ||
-                      (request.resource.data.type == 'new_request' &&
-                       exists(/databases/$(database)/documents/blood_requests/$(request.resource.data.requestId))) ||
-                      (request.resource.data.type == 'donor_response' &&
-                       exists(/databases/$(database)/documents/request_responses/$(request.resource.data.requestId))) ||
-                      (request.resource.data.type == 'donation_completed' &&
-                       exists(/databases/$(database)/documents/blood_requests/$(request.resource.data.requestId)) &&
-                       get(/databases/$(database)/documents/blood_requests/$(request.resource.data.requestId)).data.userId == request.resource.data.recipientUid &&
-                       get(/databases/$(database)/documents/blood_requests/$(request.resource.data.requestId)).data.assignedDonorId == request.auth.uid &&
-                       get(/databases/$(database)/documents/blood_requests/$(request.resource.data.requestId)).data.status == 'donation_completed') ||
-                      (request.resource.data.type == 'donation_confirmed' &&
-                       exists(/databases/$(database)/documents/blood_requests/$(request.resource.data.requestId)) &&
-                       get(/databases/$(database)/documents/blood_requests/$(request.resource.data.requestId)).data.assignedDonorId == request.resource.data.recipientUid &&
-                       get(/databases/$(database)/documents/blood_requests/$(request.resource.data.requestId)).data.userId == request.auth.uid &&
-                       get(/databases/$(database)/documents/blood_requests/$(request.resource.data.requestId)).data.status == 'fulfilled')
-                    );
+                    && request.resource.data.keys().hasOnly(['recipientUid', 'requestId', 'responseId', 'type', 'title', 'body', 'createdAt'])
+                    && isAuthorizedNotificationPayload();
+
+      // The recipient marks notifications as read. The original sender may also
+      // re-raise the exact same notification (deterministic document IDs make the
+      // client write idempotent), but it may only refresh the display text: the
+      // recipient, request, type and read state can never be altered.
+      allow update: if request.auth != null && (
+        resource.data.recipientUid == request.auth.uid ||
+        (
+          isAuthorizedNotificationPayload()
+          && request.resource.data.recipientUid == resource.data.recipientUid
+          && request.resource.data.requestId == resource.data.requestId
+          && request.resource.data.type == resource.data.type
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'body', 'createdAt', 'responseId'])
+        )
+      );
     }
 
     // Posts and comments collection (Author can update text/imageUrl; likeCount restricted to exact +1 or -1 change)
