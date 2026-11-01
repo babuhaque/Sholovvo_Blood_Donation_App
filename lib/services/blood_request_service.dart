@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import '../models/blood_request.dart';
 import 'notification_service.dart';
@@ -9,57 +10,71 @@ class BloodRequestService {
 
   // Create blood request and trigger notifications to matching nearby donors
   Future<void> createRequest(BloodRequest request) async {
+    String requestId;
     try {
       DocumentReference docRef = await _firestore.collection('blood_requests').add(request.toMap());
-      String requestId = docRef.id;
-
-      // Trigger in-app notifications for matching available donors within 10 km with fresh location
-      _notifyMatchingDonors(requestId, request);
+      requestId = docRef.id;
     } catch (e) {
       throw 'Failed to create blood request: $e';
     }
+
+    // Notification delivery runs only after the request is durable and must never
+    // roll it back, but it is awaited so every failure is observed and logged.
+    await _notifyMatchingDonors(requestId, request);
   }
 
   Future<void> _notifyMatchingDonors(String requestId, BloodRequest request) async {
+    QuerySnapshot donorSnapshot;
     try {
-      QuerySnapshot donorSnapshot = await _firestore
+      donorSnapshot = await _firestore
           .collection('users')
           .where('role', isEqualTo: 'donor')
           .where('isAvailable', isEqualTo: true)
           .where('bloodGroup', isEqualTo: request.bloodGroup)
           .get();
+    } catch (e) {
+      debugPrint(
+        'Notification fan-out aborted for request $requestId: '
+        'donor lookup failed for blood group ${request.bloodGroup}: $e',
+      );
+      return;
+    }
 
-      for (var doc in donorSnapshot.docs) {
-        final data = doc.data() as Map<String, dynamic>;
-        final donorUid = data['uid'] ?? doc.id;
+    int notified = 0;
+    int failed = 0;
 
-        if (donorUid == request.userId) continue; // Skip creator
+    for (var doc in donorSnapshot.docs) {
+      final data = doc.data() as Map<String, dynamic>;
+      final donorUid = data['uid'] ?? doc.id;
 
-        double? lat = data['latitude'] != null ? (data['latitude'] as num).toDouble() : null;
-        double? lng = data['longitude'] != null ? (data['longitude'] as num).toDouble() : null;
-        Timestamp? updatedAt = data['locationUpdatedAt'] as Timestamp?;
+      if (donorUid == request.userId) continue; // Skip creator
 
-        // Check location freshness (within 24 hours)
-        bool isFresh = false;
-        if (updatedAt != null) {
-          DateTime updatedTime = updatedAt.toDate();
-          if (DateTime.now().difference(updatedTime).inHours <= 24) {
-            isFresh = true;
-          }
+      double? lat = data['latitude'] != null ? (data['latitude'] as num).toDouble() : null;
+      double? lng = data['longitude'] != null ? (data['longitude'] as num).toDouble() : null;
+      Timestamp? updatedAt = data['locationUpdatedAt'] as Timestamp?;
+
+      // Check location freshness (within 24 hours)
+      bool isFresh = false;
+      if (updatedAt != null) {
+        DateTime updatedTime = updatedAt.toDate();
+        if (DateTime.now().difference(updatedTime).inHours <= 24) {
+          isFresh = true;
         }
+      }
 
-        // If location is fresh and valid, check 10km radius; otherwise notify if location missing or apply matching
-        bool shouldNotify = false;
-        if (lat != null && lng != null && isFresh && request.latitude != null && request.longitude != null) {
-          double distMeters = Geolocator.distanceBetween(request.latitude!, request.longitude!, lat, lng);
-          if (distMeters <= 10000) { // within 10 km
-            shouldNotify = true;
-          }
-        } else {
+      // If location is fresh and valid, check 10km radius; otherwise notify if location missing or apply matching
+      bool shouldNotify = false;
+      if (lat != null && lng != null && isFresh && request.latitude != null && request.longitude != null) {
+        double distMeters = Geolocator.distanceBetween(request.latitude!, request.longitude!, lat, lng);
+        if (distMeters <= 10000) { // within 10 km
           shouldNotify = true;
         }
+      } else {
+        shouldNotify = true;
+      }
 
-        if (shouldNotify) {
+      if (shouldNotify) {
+        try {
           await _notificationService.createNotification(
             recipientUid: donorUid,
             requestId: requestId,
@@ -67,11 +82,21 @@ class BloodRequestService {
             title: 'New ${request.bloodGroup} Blood Request',
             body: '${request.patientName} needs ${request.bloodBags} bag(s) of blood.',
           );
+          notified++;
+        } catch (e) {
+          failed++;
+          debugPrint(
+            'Notification fan-out partially failed for request $requestId: '
+            'could not notify donor $donorUid (${request.bloodGroup}): $e',
+          );
         }
       }
-    } catch (_) {
-      // Suppress background notification dispatch errors
     }
+
+    debugPrint(
+      'Notification fan-out for request $requestId (${request.bloodGroup}) '
+      'notified $notified donor(s), $failed failure(s).',
+    );
   }
 
   // Get stream of requests created by a specific user
