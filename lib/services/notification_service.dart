@@ -36,7 +36,14 @@ class NotificationService {
     }
   }
 
-  // Create a notification using an atomic transaction to ensure idempotency and prevent duplicate writes
+  // Create or idempotently re-raise a notification using a deterministic id.
+  //
+  // Idempotency is structural rather than read-then-write: the document id is
+  // derived from the request/response pair, so a repeated submission targets the
+  // same document and a merged write refreshes the content instead of creating a
+  // duplicate. This is required because the security rules keep a notification
+  // readable only by its recipient, so a sender must never need to get or query
+  // the document before writing it.
   Future<void> createNotification({
     required String recipientUid,
     required String requestId,
@@ -45,72 +52,35 @@ class NotificationService {
     required String title,
     required String body,
   }) async {
-    if (responseId == null || responseId.isEmpty) {
-      // Fallback for legacy new_request notifications using random IDs
-      try {
-        final existing = await _firestore
-            .collection('notifications')
-            .where('recipientUid', isEqualTo: recipientUid)
-            .where('requestId', isEqualTo: requestId)
-            .where('type', isEqualTo: type)
-            .get();
+    final String docId = (responseId == null || responseId.isEmpty)
+        // One lifecycle notification per recipient, request and type.
+        ? 'notif_req_${type}_${requestId}_$recipientUid'
+        // A donor response raises exactly one notification for the recipient.
+        : 'notif_resp_$responseId';
 
-        if (existing.docs.isEmpty) {
-          AppNotification notification = AppNotification(
-            id: '',
-            recipientUid: recipientUid,
-            requestId: requestId,
-            type: type,
-            title: title,
-            body: body,
-            isRead: false,
-          );
-          await _firestore.collection('notifications').add(notification.toMap());
-        }
-      } catch (e) {
-        throw FirebaseException(
-          plugin: 'cloud_firestore',
-          code: 'notification-error',
-          message: 'Failed to create legacy notification: $e',
-        );
-      }
-      return;
-    }
+    AppNotification notification = AppNotification(
+      id: docId,
+      recipientUid: recipientUid,
+      requestId: requestId,
+      responseId: responseId,
+      type: type,
+      title: title,
+      body: body,
+      isRead: false,
+    );
 
-    String docId = 'notif_resp_$responseId';
-    DocumentReference notifRef = _firestore.collection('notifications').doc(docId);
-
-    await _firestore.runTransaction((transaction) async {
-      DocumentSnapshot notifSnap = await transaction.get(notifRef);
-
-      if (notifSnap.exists) {
-        final data = notifSnap.data() as Map<String, dynamic>;
-        if (data['responseId'] == responseId &&
-            data['requestId'] == requestId &&
-            data['recipientUid'] == recipientUid &&
-            data['type'] == type) {
-          return; // Valid duplicate; idempotent return without overwriting isRead
-        } else {
-          throw FirebaseException(
-            plugin: 'cloud_firestore',
-            code: 'data-loss',
-            message: 'Integrity Error: Existing notification relationship mismatch for $docId.',
-          );
-        }
-      }
-
-      AppNotification notification = AppNotification(
-        id: docId,
-        recipientUid: recipientUid,
-        requestId: requestId,
-        responseId: responseId,
-        type: type,
-        title: title,
-        body: body,
-        isRead: false,
+    try {
+      await _firestore
+          .collection('notifications')
+          .doc(docId)
+          .set(notification.toWriteMap(), SetOptions(merge: true));
+    } on FirebaseException catch (e) {
+      throw FirebaseException(
+        plugin: 'cloud_firestore',
+        code: e.code,
+        message: 'Failed to write $type notification $docId '
+            'for recipient $recipientUid: ${e.message ?? e.code}',
       );
-
-      transaction.set(notifRef, notification.toMap());
-    });
+    }
   }
 }

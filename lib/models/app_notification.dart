@@ -23,7 +23,11 @@ class AppNotification {
     this.createdAt,
   });
 
-  Map<String, dynamic> toMap() {
+  // Payload used when a notification is created or idempotently re-raised.
+  // `isRead` is deliberately excluded: the security rules allow the sender to
+  // refresh the display text of a notification it already raised, and leaving the
+  // read state out of a merged write keeps an already-read notification read.
+  Map<String, dynamic> toWriteMap() {
     return {
       'recipientUid': recipientUid,
       'requestId': requestId,
@@ -31,8 +35,14 @@ class AppNotification {
       'type': type,
       'title': title,
       'body': body,
-      'isRead': isRead,
       'createdAt': FieldValue.serverTimestamp(),
+    };
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      ...toWriteMap(),
+      'isRead': isRead,
     };
   }
 
