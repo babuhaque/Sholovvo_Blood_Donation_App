@@ -43,7 +43,7 @@ class ActivityScreen extends StatelessWidget {
                         children: [
                           const Icon(Icons.history, size: 64, color: Colors.grey),
                           const SizedBox(height: 12),
-                          const Text(
+                          Text(
                             appText(context, 'You have not shared any posts yet.', 'আপনি এখনো কোনো পোস্ট শেয়ার করেননি।'),
                             textAlign: TextAlign.center,
                             style: TextStyle(color: Colors.grey, fontSize: 16),
